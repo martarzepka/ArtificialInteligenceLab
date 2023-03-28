@@ -55,11 +55,11 @@ def calculateChangeCost(graph, entry):
     currentChange = graph[currentStop.name].cost
 
     if currentChange == 0:
-        change = 1000
+        change = 1
     elif currentStop.previous.line == entry.line:
         change = 0
     else:
-        change = 1000
+        change = 1
 
     return currentChange + change
 
@@ -116,12 +116,12 @@ def aStar(start, end, criterion, time, graph, h):
     for stop in graph.values():
         stop.initialize()
 
-    que.put(startStop)
+    que.put((0, startStop))
     startStop.cost = 0
 
     if criterion == 't':
         while not que.empty():
-            currentStop = que.get()
+            currentStop = que.get()[1]
             processedCount += 1
 
             if currentStop == endStop:
@@ -130,17 +130,18 @@ def aStar(start, end, criterion, time, graph, h):
             for entry in currentStop.schedule:
                 if entry.arrivalStop != startStop:
                     nextStop = entry.arrivalStop
+                    newCost = calculateTimeCost(graph, entry, time)
                     if h == "man":
-                        newCost = calculateTimeCost(graph, entry, time) + nextStop.hMan(endStop)
+                        heuristic = nextStop.hMan(endStop)
                     else:
-                        newCost = calculateTimeCost(graph, entry, time) + nextStop.hEuc(endStop)
+                        heuristic = nextStop.hEuc(endStop)
                     if newCost < nextStop.cost:
                         nextStop.cost = newCost
-                        que.put(nextStop)
+                        que.put((newCost + heuristic, nextStop))
                         nextStop.previous = entry
     else:
         while not que.empty():
-            currentStop = que.get()
+            currentStop = que.get()[1]
             processedCount += 1
 
             if currentStop == endStop:
@@ -149,13 +150,14 @@ def aStar(start, end, criterion, time, graph, h):
             for entry in currentStop.schedule:
                 if entry.arrivalStop != startStop:
                     nextStop = entry.arrivalStop
+                    newCost = calculateChangeCost(graph, entry)
                     if h == "man":
-                        newCost = calculateChangeCost(graph, entry) + nextStop.hMan(endStop)
+                        heuristic = nextStop.hMan(endStop)
                     else:
-                        newCost = calculateChangeCost(graph, entry) + nextStop.hEuc(endStop)
+                        heuristic = nextStop.hEuc(endStop)
                     if newCost < nextStop.cost:
                         nextStop.cost = newCost
-                        que.put(nextStop)
+                        que.put((newCost + heuristic, nextStop))
                         nextStop.previous = entry
 
     if endStop.previous:
@@ -169,6 +171,7 @@ def aStar(start, end, criterion, time, graph, h):
         result += "Przetworzone węzły: " + str(processedCount)
         return result, calculateTimeDifference(time, endStop.previous.arrivalTime)/60, changes, processedCount
     return "Brak", 0, 0, 0
+
 
 def calculateCostMod(graph, entry, time):
     currentStop = entry.departureStop
@@ -186,7 +189,7 @@ def calculateCostMod(graph, entry, time):
 
     tripTime = entry.timeDifference
 
-    return currentCost + waitTime + tripTime + change * 500
+    return currentCost + waitTime + tripTime + change * 1000
 
 
 def binarySearch(array, target):
@@ -219,11 +222,11 @@ def aStarMod(start, end, time, graph, h):
     for stop in graph.values():
         stop.initializeMod()
 
-    que.put(startStop)
+    que.put((0, startStop))
     startStop.cost = 0
 
     while not que.empty():
-        currentStop = que.get()
+        currentStop = que.get()[1]
         processedCount += 1
 
         if currentStop == endStop:
@@ -233,25 +236,27 @@ def aStarMod(start, end, time, graph, h):
         for entry in currentStop.schedule[index:]:
             if entry.arrivalStop != startStop:
                 nextStop = entry.arrivalStop
+                newCost = calculateCostMod(graph, entry, time)
                 if h == "man":
-                    newCost = calculateCostMod(graph, entry, time) + nextStop.hMan(endStop)
+                    heuristic = nextStop.hMan(endStop)
                 else:
-                    newCost = calculateCostMod(graph, entry, time) + nextStop.hEuc(endStop)
+                    heuristic = nextStop.hEuc(endStop)
                 if newCost < nextStop.cost:
                     nextStop.cost = newCost
-                    que.put(nextStop)
+                    que.put((newCost + heuristic, nextStop))
                     nextStop.previous = entry
 
         for entry in currentStop.schedule[:index]:
             if entry.arrivalStop != startStop:
                 nextStop = entry.arrivalStop
+                newCost = calculateCostMod(graph, entry, time)
                 if h == "man":
-                    newCost = calculateCostMod(graph, entry, time) + nextStop.hMan(endStop)
+                    heuristic = nextStop.hMan(endStop)
                 else:
-                    newCost = calculateCostMod(graph, entry, time) + nextStop.hEuc(endStop)
+                    heuristic = nextStop.hEuc(endStop)
                 if newCost < nextStop.cost:
                     nextStop.cost = newCost
-                    que.put(nextStop)
+                    que.put((newCost + heuristic, nextStop))
                     nextStop.previous = entry
 
     if endStop.previous:
